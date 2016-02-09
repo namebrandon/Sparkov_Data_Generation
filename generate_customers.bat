@@ -1,0 +1,1 @@
+python datagen_customer.py 1000 4444 C:\Users\Brandon\git\data_gen_swarnim\profiles\main_config.json >>C:\Users\Brandon\git\data_gen_swarnim\data\customers.csv
