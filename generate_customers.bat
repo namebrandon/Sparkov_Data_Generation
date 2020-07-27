@@ -1,1 +1,1 @@
-python datagen_customer.py 1000 4444 C:\Users\Brandon\git\data_gen_swarnim\profiles\main_config.json >>C:\Users\Brandon\git\data_gen_swarnim\data\customers.csv
+python datagen_customer.py 100 4444 "E:\OneDrive\Projects\Banking Mule Detection Research\Github Codes\Sparkov_Data_Generation\profiles\main_config.json" >> "E:\OneDrive\Projects\Banking Mule Detection Research\Github Codes\Sparkov_Data_Generation\data\customers.csv"

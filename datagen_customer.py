@@ -30,7 +30,7 @@ class Headers:
         self.headers = headers[:-1]
 
     def print_headers(self):
-        print self.headers
+        print(self.headers)
 
 
 class Customer:
@@ -62,7 +62,7 @@ class Customer:
 
         a = np.random.random()
         c=[]
-        for b in age_gender.iterkeys():
+        for b in age_gender.keys():
             if b>a:
                 c.append(b)
         g_a = age_gender[min(c)]
@@ -114,7 +114,7 @@ class Customer:
         return match[0]
 
     def print_customer(self):
-        print str(self.ssn) + '|' + \
+        print(str(self.ssn) + '|' + \
               str(self.cc) + '|' + \
               self.first + '|' + \
               self.last + '|' + \
@@ -124,23 +124,23 @@ class Customer:
               self.job + '|' + \
               str(self.dob) + '|' + \
               str(self.account) + '|' + \
-              self.profile
+              self.profile)
 
 
 def validate():
     def print_err(n):
         if n == 1:
-            print 'Error: invalid number of customers'
+            print('Error: invalid number of customers')
         elif n == 2:
-            print 'Error: invalid (non-integer) random seed'
+            print('Error: invalid (non-integer) random seed')
         else:
-            print 'Error: main.config could not be opened'
+            print('Error: main.config could not be opened')
 
         output = '\nENTER:\n (1) Number of customers\n '
         output += '(2) Random seed (int)\n '
         output += '(3) main_config.json'
 
-        print output
+        print(output)
         sys.exit(0)
 
     try:
@@ -157,7 +157,6 @@ def validate():
         m = sys.argv[3]
         ## m = 'profiles/main_config.json'
         main = open(m, 'r').read()
-
     except:
         print_err(3)
 
@@ -173,7 +172,7 @@ if __name__ == '__main__':
     age_gender = demographics.make_age_gender_dict()
 
     fake = Faker()
-    fake.seed(seed_num)
+    Faker.seed(seed_num)
 
     headers = Headers()
 

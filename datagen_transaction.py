@@ -31,16 +31,16 @@ def get_user_input():
     # error handling for CL inputs
     def error_msg(n):
         if n == 1:
-            print 'Could not open customers file\n'
+            print('Could not open customers file\n')
         elif n == 2:
-            print 'Could not open main config json file\n'
+            print('Could not open main config json file\n')
         else:
-            print 'Invalid date (MM-DD-YYYY)'
+            print('Invalid date (MM-DD-YYYY)')
         output = 'ENTER:\n(1) Customers csv file\n'
         output += '(2) profile json file\n'
         output += '(3) Start date (MM-DD-YYYY)\n'
         output += '(4) End date (MM-DD-YYYY)\n'
-        print output
+        print(output)
         sys.exit(0)
 
     try:
@@ -88,7 +88,7 @@ def create_header(line):
     headers = line.split('|')
     headers[-1] = headers[-1].replace('\n','')
     headers.extend(['trans_num', 'trans_date', 'trans_time','unix_time', 'category', 'amt', 'is_fraud', 'merchant', 'merch_lat', 'merch_long'])
-    print ''.join([h + '|' for h in headers])[:-1]
+    print(''.join([h + '|' for h in headers])[:-1])
     return headers
 
 
@@ -112,7 +112,7 @@ class Customer:
             groups = t.split('|')
             trans_cat = groups[4]
             merch_filtered = merch[merch['category'] == trans_cat]
-            random_row = merch_filtered.ix[random.sample(merch_filtered.index, 1)]
+            random_row = merch_filtered.loc[random.sample(list(merch_filtered.index), 1)]
             ##sw added list
             chosen_merchant = random_row.iloc[0]['merchant_name']
 
@@ -126,20 +126,20 @@ class Customer:
                 rad = (float(travel_max) / 100) * 1.43
 
                 #geo_coordinate() uses uniform distribution with lower = (center-rad), upper = (center+rad)
-                merch_lat = fake.geo_coordinate(center=float(cust_lat),radius=rad)
-                merch_long = fake.geo_coordinate(center=float(cust_long),radius=rad)
+                merch_lat = fake.coordinate(center=float(cust_lat),radius=rad)
+                merch_long = fake.coordinate(center=float(cust_long),radius=rad)
             else:
                 # otherwise not traveling, so use 1 decimial degree (~70mile) radius around home address
                 rad = 1
-                merch_lat = fake.geo_coordinate(center=float(cust_lat),radius=rad)
-                merch_long = fake.geo_coordinate(center=float(cust_long),radius=rad)
+                merch_lat = fake.coordinate(center=float(cust_lat),radius=rad)
+                merch_long = fake.coordinate(center=float(cust_long),radius=rad)
 
             if is_fraud == 0 and groups[1] not in fraud_dates:
             # if cust.attrs['profile'] == "male_30_40_smaller_cities.json":
-                print self.customer.replace('\n','') + '|' + t + '|' + str(chosen_merchant) + '|' + str(merch_lat) + '|' + str(merch_long)
+                print(self.customer.replace('\n','') + '|' + t + '|' + str(chosen_merchant) + '|' + str(merch_lat) + '|' + str(merch_long))
 
             if is_fraud ==1:
-                print self.customer.replace('\n','') + '|' + t + '|' + str(chosen_merchant) + '|' + str(merch_lat) + '|' + str(merch_long)
+                print(self.customer.replace('\n','') + '|' + t + '|' + str(chosen_merchant) + '|' + str(merch_lat) + '|' + str(merch_long))
 
             #else:
                 # pass
