@@ -29,7 +29,7 @@ class Headers:
 		self.headers = headers[:-1]
 
 	def print_headers(self):
-		print self.headers
+		print(self.headers)
 
 
 class Customer:
@@ -81,7 +81,7 @@ class Customer:
 	    return cities[min(cities, key=lambda x:abs(x-random.random()))]
 
 	def print_customer(self):
-	     print str(self.ssn) + '|' +\
+	     print(str(self.ssn) + '|' +\
 	     self.first + '|' +\
 	     self.last + '|' +\
 	     self.gender + '|' +\
@@ -91,24 +91,24 @@ class Customer:
 	     str(self.dob.day) + '|' +\
 	     str(self.dob.month) + '|' +\
 	     str(self.dob.year) + '|' +\
-	     str(self.account)		
+	     str(self.account))
 
 
 
 def validate():
 	def print_err(n):
 		if n == 1:
-			print 'Error: invalid number of customers'
+			print('Error: invalid number of customers')
 		elif n == 2:
-			print 'Error: invalid (non-integer) random seed'
+			print('Error: invalid (non-integer) random seed')
 		else:
-			print 'Error: main.config could not be opened'
+			print('Error: main.config could not be opened')
 
 		output = '\nENTER:\n (1) Number of customers\n '
 		output += '(2) Random seed (int)\n '
 		output += '(3) main_config.json'
 
-		print output
+		print(output)
 		sys.exit(0)		           
 
 	try:
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 	# turn all profiles into dicts to work with
 	all_profiles = MainConfig(main).config
 
-	print all_profiles
+	print(all_profiles)
 
 	# for _ in range(num_cust):
 	# 	Customer()

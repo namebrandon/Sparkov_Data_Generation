@@ -1,1 +1,2 @@
-python datagen_customer.py 1000 4444 C:\Users\Brandon\git\data_gen_swarnim\profiles\main_config.json >>C:\Users\Brandon\git\data_gen_swarnim\data\customers.csv
+REM python datagen_customer.py noOfCustomers randomSimulationSeed "configPath" >> "OPcsv"
+python datagen_customer.py 1000 4444 ".\profiles\main_config.json" >> ".\data\customers.csv"

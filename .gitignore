@@ -8,7 +8,8 @@
 .idea/inspectionProfiles/Project_Default.xml
 *.xml
 *.pyc
-data/customers.csv
+data/*.csv
+!data/merchants.csv
 *.xml
 *.pyc
 *.pyc
@@ -16,3 +17,4 @@ demographics.pyc
 *.pyc
 demographics.pyc
 *.pyc
+Notebooks
