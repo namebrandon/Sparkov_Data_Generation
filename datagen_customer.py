@@ -163,6 +163,11 @@ def validate():
     return num_cust, seed_num, main
 
 
+fake = None
+cities = None
+age_gender = None
+all_profiles = None
+
 if __name__ == '__main__':
     # read and validate stdin
     num_cust, seed_num, main = validate()
