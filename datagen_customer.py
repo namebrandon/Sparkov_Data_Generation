@@ -38,7 +38,7 @@ class Customer:
 
     def __init__(self):
         self.ssn = fake.ssn()
-        self.gender, self.dob = self.generate_age_gender()
+        self.gender, self.dob, self.age = self.generate_age_gender()
         self.first = self.get_first_name()
         self.last = fake.last_name()
         self.street = fake.street_address()
@@ -61,17 +61,16 @@ class Customer:
         g_a = age_gender[min([a for a in age_gender if a > n])]
 
         while True:
-            dob = fake.date_time_this_century()
+            age = int(g_a[1])
+            today = date.today()
+            rand_date = fake.date_time_this_century()
+            # find birthyear, which is today's year - age - 1 if today's month,day is smaller than dob month,day
+            birth_year = today.year - age - ((today.month, today.day) < (rand_date.month, rand_date.day))
+            dob = rand_date.replace(year=birth_year)
 
-            # adjust the randomized date to yield the correct age
-            start_age = (date.today() - date(dob.year, dob.month, dob.day)).days / 365.
-            dob_year = dob.year - int(g_a[1] - int(start_age))
-
-            # since the year is adjusted, sometimes Feb 29th won't be a day
-            # in the adjusted year
             try:
-                # return first letter of gender and dob
-                return g_a[0][0], date(dob_year, dob.month, dob.day)
+                # return first letter of gender, dob and age
+                return g_a[0][0], dob, age
             except:
                 pass
 
@@ -81,15 +80,14 @@ class Customer:
         return cities[min(cities, key=lambda x: abs(x - n))]
 
     def find_profile(self):
-        age = (date.today() - self.dob).days / 365.25
         city_pop = float(self.addy.split('|')[-1])
 
         match = []
         for pro in all_profiles:
             # -1 represents infinity
             if self.gender in all_profiles[pro]['gender'] and \
-                            age >= all_profiles[pro]['age'][0] and \
-                    (age < all_profiles[pro]['age'][1] or \
+                            self.age >= all_profiles[pro]['age'][0] and \
+                    (self.age < all_profiles[pro]['age'][1] or \
                                  all_profiles[pro]['age'][1] == -1) and \
                             city_pop >= all_profiles[pro]['city_pop'][0] and \
                     (city_pop < all_profiles[pro]['city_pop'][1] or \
@@ -102,7 +100,7 @@ class Customer:
         if len(match) > 1:
             f = open('profile_overlap_warnings.log', 'a')
             output = ' '.join(match) + ': ' + self.gender + ' ' + \
-                     str(age) + ' ' + str(city_pop) + '\n'
+                     str(self.age) + ' ' + str(city_pop) + '\n'
             f.write(output)
             f.close()
         return match[0]
