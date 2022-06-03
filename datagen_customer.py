@@ -57,15 +57,16 @@ class Customer:
             return fake.first_name_female()
 
     def generate_age_gender(self):
-        #g_a = age_gender[min([a for a in age_gender if a > np.random.random()])]
+        n = np.random.random()
+        g_a = age_gender[min([a for a in age_gender if a > n])]
         #g_a = age_gender[min(age_gender, key=lambda x:abs(x-random.random()))]
 
-        a = np.random.random()
-        c=[]
-        for b in age_gender.keys():
-            if b>a:
-                c.append(b)
-        g_a = age_gender[min(c)]
+        # a = np.random.random()
+        # c=[]
+        # for b in age_gender.keys():
+        #     if b>a:
+        #         c.append(b)
+        # g_a = age_gender[min(c)]
 
         while True:
             dob = fake.date_time_this_century()
