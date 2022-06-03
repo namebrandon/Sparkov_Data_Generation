@@ -85,7 +85,8 @@ class Customer:
 
     # find nearest city
     def get_random_location(self):
-        return cities[min(cities, key=lambda x: abs(x - random.random()))]
+        n = random.random()
+        return cities[min(cities, key=lambda x: abs(x - n))]
 
     def find_profile(self):
         age = (date.today() - self.dob).days / 365.25
