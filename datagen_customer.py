@@ -57,15 +57,8 @@ class Customer:
             return fake.first_name_female()
 
     def generate_age_gender(self):
-        #g_a = age_gender[min([a for a in age_gender if a > np.random.random()])]
-        #g_a = age_gender[min(age_gender, key=lambda x:abs(x-random.random()))]
-
-        a = np.random.random()
-        c=[]
-        for b in age_gender.keys():
-            if b>a:
-                c.append(b)
-        g_a = age_gender[min(c)]
+        n = np.random.random()
+        g_a = age_gender[min([a for a in age_gender if a > n])]
 
         while True:
             dob = fake.date_time_this_century()
@@ -84,7 +77,8 @@ class Customer:
 
     # find nearest city
     def get_random_location(self):
-        return cities[min(cities, key=lambda x: abs(x - random.random()))]
+        n = random.random()
+        return cities[min(cities, key=lambda x: abs(x - n))]
 
     def find_profile(self):
         age = (date.today() - self.dob).days / 365.25
