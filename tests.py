@@ -42,12 +42,11 @@ class TestCustomer(unittest.TestCase):
     @freeze_time("2022-01-01")
     # @patch("numpy.random")
     @patch("datagen_customer.random")
-    @patch("datagen_customer.fake")
+    @patch("faker.Faker")
     @patch("datagen_customer.cities", make_cities())
     @patch("datagen_customer.age_gender", make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_init_male(self, fake, random_mock):
-        # fake = fake_mock_constructor.return_value
+    def test_init_male(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -60,7 +59,8 @@ class TestCustomer(unittest.TestCase):
         fake.date_time_this_century.return_value = date(1970, 1, 4)
         random_mock.side_effect = [0.421, 0.333]
         
-        c = Customer()
+        c = Customer(config=main)
+        c.fake = fake
         customer_data = c.generate_customer()
 
         self.assertEqual(customer_data[0], '123-45-678')
@@ -78,12 +78,11 @@ class TestCustomer(unittest.TestCase):
     @freeze_time("2022-01-01")
     # @patch("numpy.random")
     @patch("datagen_customer.random")
-    @patch("datagen_customer.fake")
+    @patch("faker.Faker")
     @patch("datagen_customer.cities", make_cities())
     @patch("datagen_customer.age_gender", make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_init_female(self, fake, random_mock):
-        # fake = fake_mock_constructor.return_value
+    def test_init_female(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -97,7 +96,8 @@ class TestCustomer(unittest.TestCase):
         # random_mock.random.return_value = 0.2
         random_mock.side_effect = [0.2, 0.333]
 
-        c = Customer()
+        c = Customer(config=main)
+        c.fake = fake
         customer_data = c.generate_customer()
 
         self.assertEqual(customer_data[0], '123-45-678')
@@ -116,15 +116,16 @@ class TestCustomer(unittest.TestCase):
     @freeze_time("2022-01-01")
     # @patch("numpy.random")
     @patch("datagen_customer.random")
-    @patch("datagen_customer.fake")
+    @patch("faker.Faker")
     @patch("datagen_customer.cities", make_cities())
     @patch("datagen_customer.age_gender", make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_generate_age_gender(self, fake, random_mock):
+    def test_generate_age_gender(self, faker_constructor, random_mock):
 
+        fake = faker_constructor.return_value
         random_mock.return_value = 0.1
         fake.date_time_this_century.return_value = date(1970, 1, 4)
-        c = Customer()
+        c = Customer(config=main)
+        c.fake = fake
         c.generate_customer()
 
         results = [
@@ -237,12 +238,11 @@ class TestCustomer(unittest.TestCase):
     @freeze_time("2022-01-01")
     # @patch("numpy.random")
     @patch("datagen_customer.random")
-    @patch("datagen_customer.fake")
+    @patch("faker.Faker")
     @patch("datagen_customer.cities", make_cities())
     @patch("datagen_customer.age_gender", make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_get_random_location(self, fake, random_mock):
-
+    def test_get_random_location(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -253,10 +253,11 @@ class TestCustomer(unittest.TestCase):
         fake.email.return_value = 'john.smith@example.com'
         fake.random_number.return_value = '123456789011'
         fake.date_time_this_century.return_value = date(1970, 1, 4)
+        fake.date_time_this_century.return_value = date(1970, 1, 4)
 
         random_mock.return_value = 0.1
-        fake.date_time_this_century.return_value = date(1970, 1, 4)
-        c = Customer()
+        c = Customer(config=main)
+        c.fake = fake
         c.generate_customer()
 
         results = [
@@ -367,12 +368,11 @@ class TestCustomer(unittest.TestCase):
 
     @freeze_time("2022-01-01")
     @patch("datagen_customer.random")
-    @patch("datagen_customer.fake")
+    @patch("faker.Faker")
     @patch("datagen_customer.cities", make_cities())
     @patch("datagen_customer.age_gender", make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_find_profile(self, fake, random_mock):
-
+    def test_find_profile(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -490,7 +490,8 @@ class TestCustomer(unittest.TestCase):
         for i in range(len(results)):
             # set random value that affects age_gender
             random_mock.side_effect = [results[i][0], 0.1, results[i][0]]
-            c = Customer()
+            c = Customer(config=main)
+            c.fake = fake
             c.generate_customer()
             self.assertEqual((results[i][0], results[i][1]), (results[i][0], c.find_profile()))
 

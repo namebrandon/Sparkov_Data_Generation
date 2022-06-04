@@ -51,32 +51,36 @@ def make_age_gender_dict():
 class Customer:
     'Randomly generates all the attributes for a customer'
 
-    def __init__(self):
-        pass
+    def __init__(self, config, seed_num=None):
+        self.fake = Faker()
+        if seed_num is not None:
+            Faker.seed(seed_num)
+        # turn all profiles into dicts to work with
+        self.all_profiles = MainConfig(config).config
 
     def generate_customer(self):
         self.gender, self.dob, self.age = self.generate_age_gender()
         self.addy = self.get_random_location()
         customer_data = [
-            fake.ssn(),
-            fake.credit_card_number(),
+            self.fake.ssn(),
+            self.fake.credit_card_number(),
             self.get_first_name(),
-            fake.last_name(),
+            self.fake.last_name(),
             self.gender,
-            fake.street_address()
+            self.fake.street_address()
         ] + self.addy + [
-            fake.job(),
+            self.fake.job(),
             self.dob,
-            str(fake.random_number(digits=12)),
+            str(self.fake.random_number(digits=12)),
             self.find_profile()
         ]
         return customer_data
 
     def get_first_name(self):
         if self.gender == 'M':
-            return fake.first_name_male()
+            return self.fake.first_name_male()
         else:
-            return fake.first_name_female()
+            return self.fake.first_name_female()
 
     def generate_age_gender(self):
         n = random()
@@ -86,7 +90,7 @@ class Customer:
             age = int(g_a[1])
             today = date.today()
             try:
-                rand_date = fake.date_time_this_century()
+                rand_date = self.fake.date_time_this_century()
                 # find birthyear, which is today's year - age - 1 if today's month,day is smaller than dob month,day
                 birth_year = today.year - age - ((today.month, today.day) < (rand_date.month, rand_date.day))
                 dob = rand_date.replace(year=birth_year)
@@ -95,6 +99,7 @@ class Customer:
                 return g_a[0][0], dob.strftime("%Y-%m-%d"), age
             except:
                 pass
+
     # find nearest city
     def get_random_location(self):
         """
@@ -118,15 +123,15 @@ class Customer:
         city_pop = float(self.addy[-1])
 
         match = []
-        for pro in all_profiles:
+        for pro in self.all_profiles:
             # -1 represents infinity
-            if (self.gender in all_profiles[pro]['gender']
-                and self.age >= all_profiles[pro]['age'][0]
-                and (self.age < all_profiles[pro]['age'][1] 
-                    or all_profiles[pro]['age'][1] == -1) 
-                and city_pop >= all_profiles[pro]['city_pop'][0] 
-                and (city_pop < all_profiles[pro]['city_pop'][1] 
-                    or all_profiles[pro]['city_pop'][1] == -1)
+            if (self.gender in self.all_profiles[pro]['gender']
+                and self.age >= self.all_profiles[pro]['age'][0]
+                and (self.age < self.all_profiles[pro]['age'][1] 
+                    or self.all_profiles[pro]['age'][1] == -1) 
+                and city_pop >= self.all_profiles[pro]['city_pop'][0] 
+                and (city_pop < self.all_profiles[pro]['city_pop'][1] 
+                    or self.all_profiles[pro]['city_pop'][1] == -1)
                 ):
                 match.append(pro)
         if match == []:
@@ -139,10 +144,33 @@ class Customer:
         return match[0]
 
 
-fake = None
+def main(num_cust, seed_num, config, out_path):
+    if num_cust <= 0 or seed_num is None or config is None:
+        parser.print_help()
+        exit(1)
+
+    # setup output to file by redirecting stdout
+    original_sys_stdout = sys.stdout
+    if out_path is not None:
+        f_out = open(out_path, 'w')
+        sys.stdout = f_out
+
+    # print headers
+    print("|".join(headers))
+
+    c = Customer(config=config, seed_num=seed_num)
+    for _ in range(num_cust):
+        customer_data = c.generate_customer()
+        print("|".join(customer_data))
+
+
+    # restore original sdtout when done
+    if out_path is not None:
+        sys.stdout = original_sys_stdout
+
+
 cities = make_cities()
 age_gender = make_age_gender_dict()
-all_profiles = None
 
 
 if __name__ == '__main__':
@@ -158,31 +186,5 @@ if __name__ == '__main__':
     config = args.config
     out_path = args.output
 
-    if num_cust <= 0 or seed_num is None or config is None:
-        parser.print_help()
-        exit(1)
+    main(num_cust, seed_num, config, out_path)
 
-    # setup output to file by redirecting stdout
-    original_sys_stdout = sys.stdout
-    if out_path is not None:
-        f_out = open(out_path, 'w')
-        sys.stdout = f_out
-
-    fake = Faker()
-    Faker.seed(seed_num)
-
-    # turn all profiles into dicts to work with
-    all_profiles = MainConfig(config).config
-
-    # print headers
-    print("|".join(headers))
-
-    c = Customer()
-    for _ in range(num_cust):
-        customer_data = c.generate_customer()
-        print("|".join(customer_data))
-
-
-    # restore original sdtout when done
-    if out_path is not None:
-        sys.stdout = original_sys_stdout
