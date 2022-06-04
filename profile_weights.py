@@ -152,9 +152,6 @@ class Profile:
         # the cumsum as the key from which to sample
         self.date_weights()
 
-    # def closest_rand(self, pro, num):
-    #     return pro[min([k for k in pro.keys() if k > num])]
-
     def closest_rand(self, pro, num):
         """
         Assumes lst is sorted. Returns closest value > num.

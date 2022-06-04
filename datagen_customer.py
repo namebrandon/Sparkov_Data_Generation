@@ -140,12 +140,10 @@ class Customer:
         return match[0]
 
 
-all_profiles = None
 fake = None
-
-# from demographics module
 cities = make_cities()
 age_gender = make_age_gender_dict()
+all_profiles = None
 
 
 if __name__ == '__main__':

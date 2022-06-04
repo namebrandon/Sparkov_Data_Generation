@@ -35,7 +35,6 @@ class Customer:
 
         for t in trans[0]:
             ## Get transaction location details to generate appropriate merchant record
-            # groups = t.split('|')
             merchants_in_category = merchants.get(t[4]) # merchant category
             chosen_merchant = random.sample(merchants_in_category, 1)[0]
 
@@ -49,7 +48,7 @@ class Customer:
                 # sorry for being American, you're on your own for kilometers.
                 rad = (float(travel_max) / 100) * 1.43
 
-            #geo_coordinate() uses uniform distribution with lower = (center-rad), upper = (center+rad)
+            # geo_coordinate() uses uniform distribution with lower = (center-rad), upper = (center+rad)
             merch_lat = fake.coordinate(center=float(cust_lat),radius=rad)
             merch_long = fake.coordinate(center=float(cust_long),radius=rad)
 
@@ -128,12 +127,10 @@ if __name__ == '__main__':
         for row in f.readlines():
             cust = Customer(row)
             if cust.attrs['profile'] == profile_name:
-                
                 is_fraud = 0
                 fraud_flag = random.randint(0,100) # set fraud flag here, as we either gen real or fraud, not both for
                                         # the same day.
                 fraud_dates = []
-
                 # decide if we generate fraud or not
                 if fraud_flag < 99: #11->25
                     fraud_interval = random.randint(1,1) #7->1
