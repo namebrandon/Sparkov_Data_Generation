@@ -79,7 +79,7 @@ class Customer:
         return cities[min(cities, key=lambda x: abs(x - n))]
 
     def find_profile(self):
-        # age = (date.today() - self.dob).days / 365.25
+
         city_pop = float(self.addy.split('|')[-1])
 
         match = []
@@ -154,6 +154,11 @@ def validate():
 
     return num_cust, seed_num, main
 
+
+fake = None
+cities = None
+age_gender = None
+all_profiles = None
 
 if __name__ == '__main__':
     # read and validate stdin
