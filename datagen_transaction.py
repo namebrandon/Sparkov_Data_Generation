@@ -111,7 +111,7 @@ def main(customer_file, profile_file, start_date, end_date, out_path=None):
         headers.extend(transaction_headers)
         print("|".join(headers))
         for row in f.readlines():
-            cust = Customer(row, headers)
+            cust = Customer(row)
             if cust.attrs['profile'] == profile_name:
                 is_fraud = 0
                 fraud_flag = random.randint(0,100) # set fraud flag here, as we either gen real or fraud, not both for
