@@ -8,6 +8,8 @@ from profile_weights import Profile
 import json
 import csv
 
+from datagen_customer import headers
+
 
 transaction_headers = [
     'trans_num', 
@@ -22,12 +24,24 @@ transaction_headers = [
     'merch_long'
 ]
 
+# read this only once / built a map of merchant per category for easy lookup
+merchants = {}
+with open('data/merchants.csv', 'r') as merchants_file:
+    csv_reader = csv.reader(merchants_file, delimiter='|')
+    # skip header
+    csv_reader.__next__()
+    for row in csv_reader:
+        if merchants.get(row[0]) is None:
+            merchants[row[0]] = []
+        merchants[row[0]].append(row[1])
+
 
 class Customer:
     def __init__(self, raw):
         self.raw = raw.strip().split('|')
         self.attrs = self.parse_customer(raw)
         self.fraud_dates = []
+        self.fake = Faker()
 
     def print_trans(self, trans, is_fraud, fraud_dates):
         is_traveling = trans[1]
@@ -49,8 +63,8 @@ class Customer:
                 rad = (float(travel_max) / 100) * 1.43
 
             # geo_coordinate() uses uniform distribution with lower = (center-rad), upper = (center+rad)
-            merch_lat = fake.coordinate(center=float(cust_lat),radius=rad)
-            merch_long = fake.coordinate(center=float(cust_long),radius=rad)
+            merch_lat = self.fake.coordinate(center=float(cust_lat),radius=rad)
+            merch_long = self.fake.coordinate(center=float(cust_long),radius=rad)
 
             if (is_fraud == 0 and t[1] not in fraud_dates) or is_fraud == 1:
                 features = self.raw + t + [chosen_merchant, str(merch_lat), str(merch_long)]
@@ -70,22 +84,9 @@ def valid_date(s):
         msg = "not a valid date: {0!r}".format(s)
         raise argparse.ArgumentTypeError(msg)
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser('Transaction Generator')
-    parser.add_argument('customer_file', type=pathlib.Path, help='Customer file generated with the datagen_customer script')
-    parser.add_argument('profile', type=pathlib.Path, help='profile')
-    parser.add_argument('start_date', type=valid_date, help='Transactions start date')
-    parser.add_argument('end_date', type=valid_date, help='Transactions start date')
-    parser.add_argument('-o', '--output', type=pathlib.Path, help='Output file path')
 
-    args = parser.parse_args()
+def main(customer_file, profile_file, start_date, end_date, out_path=None):
 
-    customer_file = args.customer_file
-    profile_file = args.profile 
-    start_date = args.start_date
-    end_date = args.end_date
-    out_path = args.output
-    
     profile_name = profile_file.name
     profile_file_fraud = pathlib.Path(*list(profile_file.parts)[:-1] + [f"fraud_{profile_name}"])
 
@@ -95,25 +96,10 @@ if __name__ == '__main__':
         f_out = open(out_path, 'w')
         sys.stdout = f_out
 
-    
     with open(profile_file, 'r') as f:
         profile_obj = json.load(f)
     with open(profile_file_fraud, 'r') as f:
         profile_fraud_obj = json.load(f)
-
-    # read this only once / built a map of merchant per category for easy lookup
-    merchants = {}
-    with open('data/merchants.csv', 'r') as merchants_file:
-        csv_reader = csv.reader(merchants_file, delimiter='|')
-        # skip header
-        csv_reader.__next__()
-        for row in csv_reader:
-            if merchants.get(row[0]) is None:
-                merchants[row[0]] = []
-            merchants[row[0]].append(row[1])
-    
-    # generate Faker object to calc merchant transaction locations
-    fake = Faker()
 
     profile = Profile({**profile_obj})
     profile.set_date_range(start_date, end_date)
@@ -121,11 +107,11 @@ if __name__ == '__main__':
     # for each customer, if the customer fits this profile
     # generate appropriate number of transactions
     with open(customer_file, 'r') as f:
-        headers = f.readline().strip().split('|')
+        f.readline()
         headers.extend(transaction_headers)
         print("|".join(headers))
         for row in f.readlines():
-            cust = Customer(row)
+            cust = Customer(row, headers)
             if cust.attrs['profile'] == profile_name:
                 is_fraud = 0
                 fraud_flag = random.randint(0,100) # set fraud flag here, as we either gen real or fraud, not both for
@@ -158,3 +144,24 @@ if __name__ == '__main__':
 
     if out_path is not None:
         sys.stdout = original_sys_stdout
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser('Transaction Generator')
+    parser.add_argument('customer_file', type=pathlib.Path, help='Customer file generated with the datagen_customer script')
+    parser.add_argument('profile', type=pathlib.Path, help='profile')
+    parser.add_argument('start_date', type=valid_date, help='Transactions start date')
+    parser.add_argument('end_date', type=valid_date, help='Transactions start date')
+    parser.add_argument('-o', '--output', type=pathlib.Path, help='Output file path')
+
+    args = parser.parse_args()
+
+    customer_file = args.customer_file
+    profile_file = args.profile 
+    start_date = args.start_date
+    end_date = args.end_date
+    out_path = args.output
+
+    main(customer_file, profile_file, start_date, end_date, out_path)
+
+    
