@@ -1,180 +1,190 @@
-import faker
 from faker import Faker
-import random
-import numpy as np
 import sys
-import datetime
-from datetime import date
-from datetime import timedelta
-import fileinput
-import random
-from collections import defaultdict
-import json
-import demographics
+from datetime import timedelta, date
+from random import random
 from main_config import MainConfig
+import argparse
+import pathlib
+from bisect import bisect_left
 
 
-class Headers:
-    'Store the headers and print to stdout to pipe into csv'
+headers = [
+    'ssn',
+    'cc_num',
+    'first',
+    'last',
+    'gender',
+    'street',
+    'city',
+    'state', 
+    'zip', 
+    'lat', 
+    'long', 
+    'city_pop',
+    'job', 
+    'dob', 
+    'acct_num', 
+    'profile'
+]
 
-    def __init__(self):
-        self.make_headers()
-        self.print_headers()
 
-    def make_headers(self):
-        headers = ''
-        for h in ['ssn', 'cc_num', 'first', 'last', 'gender', 'street', \
-                  'city', 'state', 'zip', 'lat', 'long', 'city_pop', \
-                  'job', 'dob', 'acct_num', 'profile']:
-            headers += h + '|'
-        self.headers = headers[:-1]
+def make_cities():
+    cities = {}
+    with open('./demographic_data/locations_partitions.csv', 'r') as f:
+        for line in f.readlines()[1:]:
+            cdf, output = line.strip().split(',')
+            cities[float(cdf)] = output.split('|')
+        return cities
 
-    def print_headers(self):
-        print(self.headers)
+
+def make_age_gender_dict():
+    gender_age = {}
+    prev = 0
+    with open('./demographic_data/age_gender_demographics.csv', 'r') as f:
+        for line in f.readlines()[1:]:
+            l = line.strip().split(',')
+            prev += float(l[3])
+            gender_age[prev] = (l[2], float(l[1]))
+        return gender_age
 
 
 class Customer:
-    'Randomly generates all the attirubtes for a customer'
+    'Randomly generates all the attributes for a customer'
 
-    def __init__(self):
-        self.ssn = fake.ssn()
+    def __init__(self, config, seed_num=None):
+        self.fake = Faker()
+        if seed_num is not None:
+            Faker.seed(seed_num)
+        # turn all profiles into dicts to work with
+        self.all_profiles = MainConfig(config).config
+
+    def generate_customer(self):
         self.gender, self.dob, self.age = self.generate_age_gender()
-        self.first = self.get_first_name()
-        self.last = fake.last_name()
-        self.street = fake.street_address()
         self.addy = self.get_random_location()
-        self.job = fake.job()
-        self.cc = fake.credit_card_number()
-        self.email = fake.email()
-        self.account = fake.random_number(digits=12)
-        self.profile = self.find_profile()
-        self.print_customer()
+        customer_data = [
+            self.fake.ssn(),
+            self.fake.credit_card_number(),
+            self.get_first_name(),
+            self.fake.last_name(),
+            self.gender,
+            self.fake.street_address()
+        ] + self.addy + [
+            self.fake.job(),
+            self.dob,
+            str(self.fake.random_number(digits=12)),
+            self.find_profile()
+        ]
+        return customer_data
 
     def get_first_name(self):
         if self.gender == 'M':
-            return fake.first_name_male()
+            return self.fake.first_name_male()
         else:
-            return fake.first_name_female()
+            return self.fake.first_name_female()
 
     def generate_age_gender(self):
-        n = np.random.random()
+        n = random()
         g_a = age_gender[min([a for a in age_gender if a > n])]
 
         while True:
             age = int(g_a[1])
             today = date.today()
             try:
-                rand_date = fake.date_time_this_century()
+                rand_date = self.fake.date_time_this_century()
                 # find birthyear, which is today's year - age - 1 if today's month,day is smaller than dob month,day
                 birth_year = today.year - age - ((today.month, today.day) < (rand_date.month, rand_date.day))
                 dob = rand_date.replace(year=birth_year)
+
                 # return first letter of gender, dob and age
-                return g_a[0][0], dob, age
+                return g_a[0][0], dob.strftime("%Y-%m-%d"), age
             except:
                 pass
 
     # find nearest city
     def get_random_location(self):
-        n = random.random()
-        return cities[min(cities, key=lambda x: abs(x - n))]
+        """
+        Assumes lst is sorted. Returns closest value to num.
+        """
+        num = random()
+        lst = list(cities.keys())
+        pos = bisect_left(lst, num)
+        if pos == 0:
+            return cities[lst[0]]
+        if pos == len(cities):
+            return cities[lst[-1]]
+        before = lst[pos - 1]
+        after = lst[pos]
+        if after - num < num - before:
+            return cities[after]
+        else:
+            return cities[before]
 
     def find_profile(self):
-
-        city_pop = float(self.addy.split('|')[-1])
+        city_pop = float(self.addy[-1])
 
         match = []
-        for pro in all_profiles:
+        for pro in self.all_profiles:
             # -1 represents infinity
-            if self.gender in all_profiles[pro]['gender'] and \
-                            self.age >= all_profiles[pro]['age'][0] and \
-                    (self.age < all_profiles[pro]['age'][1] or \
-                                 all_profiles[pro]['age'][1] == -1) and \
-                            city_pop >= all_profiles[pro]['city_pop'][0] and \
-                    (city_pop < all_profiles[pro]['city_pop'][1] or \
-                                 all_profiles[pro]['city_pop'][1] == -1):
+            if (self.gender in self.all_profiles[pro]['gender']
+                and self.age >= self.all_profiles[pro]['age'][0]
+                and (self.age < self.all_profiles[pro]['age'][1] 
+                    or self.all_profiles[pro]['age'][1] == -1) 
+                and city_pop >= self.all_profiles[pro]['city_pop'][0] 
+                and (city_pop < self.all_profiles[pro]['city_pop'][1] 
+                    or self.all_profiles[pro]['city_pop'][1] == -1)
+                ):
                 match.append(pro)
         if match == []:
             match.append('leftovers.json')
 
         # found overlap -- write to log file but continue
         if len(match) > 1:
-            f = open('profile_overlap_warnings.log', 'a')
-            output = ' '.join(match) + ': ' + self.gender + ' ' + \
-                     str(self.age) + ' ' + str(city_pop) + '\n'
-            f.write(output)
-            f.close()
+            with open('profile_overlap_warnings.log', 'a') as f:
+                f.write(f"{' '.join(match)}: {self.gender} {str(self.age)} {str(city_pop)}\n")
         return match[0]
 
-    def print_customer(self):
-        print(str(self.ssn) + '|' + \
-              str(self.cc) + '|' + \
-              self.first + '|' + \
-              self.last + '|' + \
-              self.gender + '|' + \
-              self.street + '|' + \
-              self.addy + '|' + \
-              self.job + '|' + \
-              str(self.dob) + '|' + \
-              str(self.account) + '|' + \
-              self.profile)
+
+def main(num_cust, seed_num, config, out_path):
+    if num_cust <= 0 or seed_num is None or config is None:
+        parser.print_help()
+        exit(1)
+
+    # setup output to file by redirecting stdout
+    original_sys_stdout = sys.stdout
+    if out_path is not None:
+        f_out = open(out_path, 'w')
+        sys.stdout = f_out
+
+    # print headers
+    print("|".join(headers))
+
+    c = Customer(config=config, seed_num=seed_num)
+    for _ in range(num_cust):
+        customer_data = c.generate_customer()
+        print("|".join(customer_data))
 
 
-def validate():
-    def print_err(n):
-        if n == 1:
-            print('Error: invalid number of customers')
-        elif n == 2:
-            print('Error: invalid (non-integer) random seed')
-        else:
-            print('Error: main.config could not be opened')
-
-        output = '\nENTER:\n (1) Number of customers\n '
-        output += '(2) Random seed (int)\n '
-        output += '(3) main_config.json'
-
-        print(output)
-        sys.exit(0)
-
-    try:
-        num_cust = int(sys.argv[1])
-        ## num_cust = 15
-    except:
-        print_err(1)
-    try:
-        seed_num = int(sys.argv[2])
-        ## seed_num = 4444
-    except:
-        print_err(2)
-    try:
-        m = sys.argv[3]
-        ## m = 'profiles/main_config.json'
-        main = open(m, 'r').read()
-    except:
-        print_err(3)
-
-    return num_cust, seed_num, main
+    # restore original sdtout when done
+    if out_path is not None:
+        sys.stdout = original_sys_stdout
 
 
-fake = None
-cities = None
-age_gender = None
-all_profiles = None
+cities = make_cities()
+age_gender = make_age_gender_dict()
+
 
 if __name__ == '__main__':
-    # read and validate stdin
-    num_cust, seed_num, main = validate()
+    parser = argparse.ArgumentParser(description='Customer Generator')
+    parser.add_argument('count', type=int, help='Number of customers to generate', default=10)
+    parser.add_argument('seed', type=int, nargs='?', help='Random generator seed', default=42)
+    parser.add_argument('config', type=pathlib.Path, nargs='?', help='Profile config file (typically profiles/main_config.json")', default='./profiles/main_config.json')
+    parser.add_argument('-o', '--output', type=pathlib.Path, help='Output file path', default=None)
 
-    # from demographics module
-    cities = demographics.make_cities()
-    age_gender = demographics.make_age_gender_dict()
+    args = parser.parse_args()
+    num_cust = args.count
+    seed_num = args.seed
+    config = args.config
+    out_path = args.output
 
-    fake = Faker()
-    Faker.seed(seed_num)
+    main(num_cust, seed_num, config, out_path)
 
-    headers = Headers()
-
-    # turn all profiles into dicts to work with
-    all_profiles = MainConfig(main).config
-
-    for _ in range(num_cust):
-        Customer()

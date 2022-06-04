@@ -10,10 +10,9 @@ import os
 import numpy as np
 import random as random_test
 
-from datagen_customer import Headers, Customer
+from datagen_customer import Customer, make_age_gender_dict, make_cities
 from main_config import MainConfig
 from profile_weights import Profile
-import demographics
 
 
 class FakerMock():
@@ -37,32 +36,17 @@ profile_list = [
 ]
 
 
-main = open('profiles/main_config.json', 'r').read()
-
-class TestHeaders(unittest.TestCase):
-    def test_headers(self):
-        """
-        Test header generator
-        """
-
-        h = Headers()
-        h.make_headers()
-        result = h.headers
-        self.assertEqual(result, "|".join(['ssn', 'cc_num', 'first', 'last', 'gender', 'street', \
-                  'city', 'state', 'zip', 'lat', 'long', 'city_pop', \
-                  'job', 'dob', 'acct_num', 'profile']), "Headers do not match")
-
+main = 'profiles/main_config.json'
 
 class TestCustomer(unittest.TestCase):
     @freeze_time("2022-01-01")
-    @patch("numpy.random")
-    @patch("random.random", return_value=0.333)
-    @patch("datagen_customer.fake")
-    @patch("datagen_customer.cities", demographics.make_cities())
-    @patch("datagen_customer.age_gender", demographics.make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_init_male(self, fake, random_mock, np_random_mock):
-        # fake = fake_mock_constructor.return_value
+    # @patch("numpy.random")
+    @patch("datagen_customer.random")
+    @patch("faker.Faker")
+    @patch("datagen_customer.cities", make_cities())
+    @patch("datagen_customer.age_gender", make_age_gender_dict())
+    def test_init_male(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -73,34 +57,32 @@ class TestCustomer(unittest.TestCase):
         fake.email.return_value = 'john.smith@example.com'
         fake.random_number.return_value = '123456789011'
         fake.date_time_this_century.return_value = date(1970, 1, 4)
-        np_random_mock.random.return_value = 0.421
+        random_mock.side_effect = [0.421, 0.333]
         
-        c = Customer()
-        print(c)
+        c = Customer(config=main)
+        c.fake = fake
+        customer_data = c.generate_customer()
 
-        self.assertEqual(c.ssn, '123-45-678')
-        self.assertEqual(c.gender, 'M')
-        self.assertEqual(c.dob, date(1976, 1,4))
-        self.assertEqual(c.first, 'John')
-        self.assertEqual(c.last, 'Smith')
-        self.assertEqual(c.street, '123 Park Ave')
-        self.assertEqual(c.ssn, '123-45-678')
-        self.assertEqual(c.job, 'Engineer')
-        self.assertEqual(c.cc, '1234567890101234')
-        self.assertEqual(c.email, 'john.smith@example.com')
-        self.assertEqual(c.account, '123456789011')
-        self.assertEqual(c.profile, 'adults_2550_male_urban.json')
-        self.assertEqual(c.addy, 'Fairbanks|AK|99701|64.644|-147.5221|63999')
+        self.assertEqual(customer_data[0], '123-45-678')
+        self.assertEqual(customer_data[1], '1234567890101234')
+        self.assertEqual(customer_data[2], 'John')
+        self.assertEqual(customer_data[3], 'Smith')
+        self.assertEqual(customer_data[4], 'M')
+        self.assertEqual(customer_data[5], '123 Park Ave')
+        self.assertEqual(customer_data[6:12], 'Fairbanks|AK|99701|64.644|-147.5221|63999'.split("|"))
+        self.assertEqual(customer_data[12], 'Engineer')
+        self.assertEqual(customer_data[13], date(1976, 1, 4).strftime('%Y-%m-%d'))
+        self.assertEqual(customer_data[14], '123456789011')
+        self.assertEqual(customer_data[15], 'adults_2550_male_urban.json')
 
     @freeze_time("2022-01-01")
-    @patch("numpy.random")
-    @patch("random.random", return_value=0.333)
-    @patch("datagen_customer.fake")
-    @patch("datagen_customer.cities", demographics.make_cities())
-    @patch("datagen_customer.age_gender", demographics.make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_init_female(self, fake, random_mock, np_random_mock):
-        # fake = fake_mock_constructor.return_value
+    # @patch("numpy.random")
+    @patch("datagen_customer.random")
+    @patch("faker.Faker")
+    @patch("datagen_customer.cities", make_cities())
+    @patch("datagen_customer.age_gender", make_age_gender_dict())
+    def test_init_female(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -111,156 +93,156 @@ class TestCustomer(unittest.TestCase):
         fake.email.return_value = 'john.smith@example.com'
         fake.random_number.return_value = '123456789011'
         fake.date_time_this_century.return_value = date(1970, 1, 4)
-        np_random_mock.random.return_value = 0.2
+        # random_mock.random.return_value = 0.2
+        random_mock.side_effect = [0.2, 0.333]
 
-        c = Customer()
-        print(c)
+        c = Customer(config=main)
+        c.fake = fake
+        customer_data = c.generate_customer()
 
-        self.assertEqual(c.ssn, '123-45-678')
-        self.assertEqual(c.gender, 'F')
-        self.assertEqual(c.dob, date(1990, 1, 4))
-        self.assertEqual(c.first, 'Mary')
-        self.assertEqual(c.last, 'Smith')
-        self.assertEqual(c.street, '123 Park Ave')
-        self.assertEqual(c.ssn, '123-45-678')
-        self.assertEqual(c.job, 'Engineer')
-        self.assertEqual(c.cc, '1234567890101234')
-        self.assertEqual(c.email, 'john.smith@example.com')
-        self.assertEqual(c.account, '123456789011')
-        self.assertEqual(c.profile, 'adults_2550_female_urban.json')
-        self.assertEqual(c.addy, 'Fairbanks|AK|99701|64.644|-147.5221|63999')
+        self.assertEqual(customer_data[0], '123-45-678')
+        self.assertEqual(customer_data[1], '1234567890101234')
+        self.assertEqual(customer_data[2], 'Mary')
+        self.assertEqual(customer_data[3], 'Smith')
+        self.assertEqual(customer_data[4], 'F')
+        self.assertEqual(customer_data[5], '123 Park Ave')
+        self.assertEqual(customer_data[6:12], 'Fairbanks|AK|99701|64.644|-147.5221|63999'.split("|"))
+        self.assertEqual(customer_data[12], 'Engineer')
+        self.assertEqual(customer_data[13], date(1990, 1, 4).strftime('%Y-%m-%d'))
+        self.assertEqual(customer_data[14], '123456789011')
+        self.assertEqual(customer_data[15], 'adults_2550_female_urban.json')
+
 
     @freeze_time("2022-01-01")
-    @patch("numpy.random")
-    @patch("random.random", return_value=0.333)
-    @patch("datagen_customer.fake")
-    @patch("datagen_customer.cities", demographics.make_cities())
-    @patch("datagen_customer.age_gender", demographics.make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_generate_age_gender(self, fake, random_mock, np_random_mock):
+    # @patch("numpy.random")
+    @patch("datagen_customer.random")
+    @patch("faker.Faker")
+    @patch("datagen_customer.cities", make_cities())
+    @patch("datagen_customer.age_gender", make_age_gender_dict())
+    def test_generate_age_gender(self, faker_constructor, random_mock):
 
-        np_random_mock.random.return_value = 0.1
+        fake = faker_constructor.return_value
+        random_mock.return_value = 0.1
         fake.date_time_this_century.return_value = date(1970, 1, 4)
-        c = Customer()
+        c = Customer(config=main)
+        c.fake = fake
+        c.generate_customer()
 
         results = [
-            (0.01, ('M', date(2002, 1, 4), 19)) ,
-            (0.02, ('F', date(2002, 1, 4), 19)) ,
-            (0.03, ('F', date(2001, 1, 4), 20)) ,
-            (0.04, ('M', date(2000, 1, 4), 21)) ,
-            (0.05, ('M', date(1999, 1, 4), 22)) ,
-            (0.06, ('F', date(1999, 1, 4), 22)) ,
-            (0.07, ('F', date(1998, 1, 4), 23)) ,
-            (0.08, ('M', date(1997, 1, 4), 24)) ,
-            (0.09, ('F', date(1997, 1, 4), 24)) ,
-            (0.1, ('F', date(1996, 1, 4), 25)) ,
-            (0.11, ('M', date(1995, 1, 4), 26)) ,
-            (0.12, ('F', date(1995, 1, 4), 26)) ,
-            (0.13, ('M', date(1994, 1, 4), 27)) ,
-            (0.14, ('M', date(1993, 1, 4), 28)) ,
-            (0.15, ('F', date(1993, 1, 4), 28)) ,
-            (0.16, ('M', date(1992, 1, 4), 29)) ,
-            (0.17, ('F', date(1992, 1, 4), 29)) ,
-            (0.18, ('M', date(1991, 1, 4), 30)) ,
-            (0.19, ('M', date(1990, 1, 4), 31)) ,
-            (0.2, ('F', date(1990, 1, 4), 31)) ,
-            (0.21, ('M', date(1989, 1, 4), 32)) ,
-            (0.22, ('F', date(1989, 1, 4), 32)) ,
-            (0.23, ('M', date(1988, 1, 4), 33)) ,
-            (0.24, ('M', date(1987, 1, 4), 34)) ,
-            (0.25, ('F', date(1987, 1, 4), 34)) ,
-            (0.26, ('M', date(1986, 1, 4), 35)) ,
-            (0.27, ('F', date(1986, 1, 4), 35)) ,
-            (0.28, ('F', date(1985, 1, 4), 36)) ,
-            (0.29, ('M', date(1984, 1, 4), 37)) ,
-            (0.3, ('F', date(1984, 1, 4), 37)) ,
-            (0.31, ('F', date(1983, 1, 4), 38)) ,
-            (0.32, ('M', date(1982, 1, 4), 39)) ,
-            (0.33, ('F', date(1982, 1, 4), 39)) ,
-            (0.34, ('M', date(1981, 1, 4), 40)) ,
-            (0.35, ('M', date(1980, 1, 4), 41)) ,
-            (0.36, ('F', date(1980, 1, 4), 41)) ,
-            (0.37, ('M', date(1979, 1, 4), 42)) ,
-            (0.38, ('F', date(1979, 1, 4), 42)) ,
-            (0.39, ('M', date(1978, 1, 4), 43)) ,
-            (0.4, ('M', date(1977, 1, 4), 44)) ,
-            (0.41, ('F', date(1977, 1, 4), 44)) ,
-            (0.42, ('M', date(1976, 1, 4), 45)) ,
-            (0.43, ('F', date(1976, 1, 4), 45)) ,
-            (0.44, ('M', date(1975, 1, 4), 46)) ,
-            (0.45, ('F', date(1975, 1, 4), 46)) ,
-            (0.46, ('M', date(1974, 1, 4), 47)) ,
-            (0.47, ('M', date(1973, 1, 4), 48)) ,
-            (0.48, ('F', date(1973, 1, 4), 48)) ,
-            (0.49, ('M', date(1972, 1, 4), 49)) ,
-            (0.5, ('F', date(1972, 1, 4), 49)) ,
-            (0.51, ('M', date(1971, 1, 4), 50)) ,
-            (0.52, ('F', date(1971, 1, 4), 50)) ,
-            (0.53, ('M', date(1970, 1, 4), 51)) ,
-            (0.54, ('F', date(1970, 1, 4), 51)) ,
-            (0.55, ('M', date(1969, 1, 4), 52)) ,
-            (0.56, ('F', date(1969, 1, 4), 52)) ,
-            (0.57, ('M', date(1968, 1, 4), 53)) ,
-            (0.58, ('F', date(1968, 1, 4), 53)) ,
-            (0.59, ('M', date(1967, 1, 4), 54)) ,
-            (0.6, ('M', date(1966, 1, 4), 55)) ,
-            (0.61, ('F', date(1966, 1, 4), 55)) ,
-            (0.62, ('M', date(1965, 1, 4), 56)) ,
-            (0.63, ('F', date(1965, 1, 4), 56)) ,
-            (0.64, ('M', date(1964, 1, 4), 57)) ,
-            (0.65, ('F', date(1964, 1, 4), 57)) ,
-            (0.66, ('M', date(1963, 1, 4), 58)) ,
-            (0.67, ('F', date(1963, 1, 4), 58)) ,
-            (0.68, ('M', date(1962, 1, 4), 59)) ,
-            (0.69, ('F', date(1962, 1, 4), 59)) ,
-            (0.7, ('M', date(1961, 1, 4), 60)) ,
-            (0.71, ('F', date(1961, 1, 4), 60)) ,
-            (0.72, ('F', date(1960, 1, 4), 61)) ,
-            (0.73, ('M', date(1959, 1, 4), 62)) ,
-            (0.74, ('F', date(1959, 1, 4), 62)) ,
-            (0.75, ('M', date(1958, 1, 4), 63)) ,
-            (0.76, ('M', date(1957, 1, 4), 64)) ,
-            (0.77, ('F', date(1957, 1, 4), 64)) ,
-            (0.78, ('M', date(1956, 1, 4), 65)) ,
-            (0.79, ('M', date(1955, 1, 4), 66)) ,
-            (0.8, ('F', date(1955, 1, 4), 66)) ,
-            (0.81, ('F', date(1954, 1, 4), 67)) ,
-            (0.82, ('M', date(1953, 1, 4), 68)) ,
-            (0.83, ('M', date(1952, 1, 4), 69)) ,
-            (0.84, ('F', date(1952, 1, 4), 69)) ,
-            (0.85, ('M', date(1950, 1, 4), 71)) ,
-            (0.86, ('M', date(1949, 1, 4), 72)) ,
-            (0.87, ('M', date(1948, 1, 4), 73)) ,
-            (0.88, ('M', date(1947, 1, 4), 74)) ,
-            (0.89, ('F', date(1946, 1, 4), 75)) ,
-            (0.9, ('F', date(1945, 1, 4), 76)) ,
-            (0.91, ('M', date(1943, 1, 4), 78)) ,
-            (0.92, ('F', date(1942, 1, 4), 79)) ,
-            (0.93, ('F', date(1940, 1, 4), 81)) ,
-            (0.94, ('F', date(1938, 1, 4), 83)) ,
-            (0.95, ('M', date(1936, 1, 4), 85)) ,
-            (0.96, ('F', date(1934, 1, 4), 87)) ,
-            (0.97, ('F', date(1932, 1, 4), 89)) ,
-            (0.98, ('F', date(1930, 1, 4), 91)) ,
-            (0.99, ('F', date(1928, 1, 4), 93)) 
+             (0.01, ('M', date(2002, 1, 4).strftime("%Y-%m-%d"), 19)) ,
+            (0.02, ('F', date(2002, 1, 4).strftime("%Y-%m-%d"), 19)) ,
+            (0.03, ('F', date(2001, 1, 4).strftime("%Y-%m-%d"), 20)) ,
+            (0.04, ('M', date(2000, 1, 4).strftime("%Y-%m-%d"), 21)) ,
+            (0.05, ('M', date(1999, 1, 4).strftime("%Y-%m-%d"), 22)) ,
+            (0.06, ('F', date(1999, 1, 4).strftime("%Y-%m-%d"), 22)) ,
+            (0.07, ('F', date(1998, 1, 4).strftime("%Y-%m-%d"), 23)) ,
+            (0.08, ('M', date(1997, 1, 4).strftime("%Y-%m-%d"), 24)) ,
+            (0.09, ('F', date(1997, 1, 4).strftime("%Y-%m-%d"), 24)) ,
+            (0.1, ('F', date(1996, 1, 4).strftime("%Y-%m-%d"), 25)) ,
+            (0.11, ('M', date(1995, 1, 4).strftime("%Y-%m-%d"), 26)) ,
+            (0.12, ('F', date(1995, 1, 4).strftime("%Y-%m-%d"), 26)) ,
+            (0.13, ('M', date(1994, 1, 4).strftime("%Y-%m-%d"), 27)) ,
+            (0.14, ('M', date(1993, 1, 4).strftime("%Y-%m-%d"), 28)) ,
+            (0.15, ('F', date(1993, 1, 4).strftime("%Y-%m-%d"), 28)) ,
+            (0.16, ('M', date(1992, 1, 4).strftime("%Y-%m-%d"), 29)) ,
+            (0.17, ('F', date(1992, 1, 4).strftime("%Y-%m-%d"), 29)) ,
+            (0.18, ('M', date(1991, 1, 4).strftime("%Y-%m-%d"), 30)) ,
+            (0.19, ('M', date(1990, 1, 4).strftime("%Y-%m-%d"), 31)) ,
+            (0.2, ('F', date(1990, 1, 4).strftime("%Y-%m-%d"), 31)) ,
+            (0.21, ('M', date(1989, 1, 4).strftime("%Y-%m-%d"), 32)) ,
+            (0.22, ('F', date(1989, 1, 4).strftime("%Y-%m-%d"), 32)) ,
+            (0.23, ('M', date(1988, 1, 4).strftime("%Y-%m-%d"), 33)) ,
+            (0.24, ('M', date(1987, 1, 4).strftime("%Y-%m-%d"), 34)) ,
+            (0.25, ('F', date(1987, 1, 4).strftime("%Y-%m-%d"), 34)) ,
+            (0.26, ('M', date(1986, 1, 4).strftime("%Y-%m-%d"), 35)) ,
+            (0.27, ('F', date(1986, 1, 4).strftime("%Y-%m-%d"), 35)) ,
+            (0.28, ('F', date(1985, 1, 4).strftime("%Y-%m-%d"), 36)) ,
+            (0.29, ('M', date(1984, 1, 4).strftime("%Y-%m-%d"), 37)) ,
+            (0.3, ('F', date(1984, 1, 4).strftime("%Y-%m-%d"), 37)) ,
+            (0.31, ('F', date(1983, 1, 4).strftime("%Y-%m-%d"), 38)) ,
+            (0.32, ('M', date(1982, 1, 4).strftime("%Y-%m-%d"), 39)) ,
+            (0.33, ('F', date(1982, 1, 4).strftime("%Y-%m-%d"), 39)) ,
+            (0.34, ('M', date(1981, 1, 4).strftime("%Y-%m-%d"), 40)) ,
+            (0.35, ('M', date(1980, 1, 4).strftime("%Y-%m-%d"), 41)) ,
+            (0.36, ('F', date(1980, 1, 4).strftime("%Y-%m-%d"), 41)) ,
+            (0.37, ('M', date(1979, 1, 4).strftime("%Y-%m-%d"), 42)) ,
+            (0.38, ('F', date(1979, 1, 4).strftime("%Y-%m-%d"), 42)) ,
+            (0.39, ('M', date(1978, 1, 4).strftime("%Y-%m-%d"), 43)) ,
+            (0.4, ('M', date(1977, 1, 4).strftime("%Y-%m-%d"), 44)) ,
+            (0.41, ('F', date(1977, 1, 4).strftime("%Y-%m-%d"), 44)) ,
+            (0.42, ('M', date(1976, 1, 4).strftime("%Y-%m-%d"), 45)) ,
+            (0.43, ('F', date(1976, 1, 4).strftime("%Y-%m-%d"), 45)) ,
+            (0.44, ('M', date(1975, 1, 4).strftime("%Y-%m-%d"), 46)) ,
+            (0.45, ('F', date(1975, 1, 4).strftime("%Y-%m-%d"), 46)) ,
+            (0.46, ('M', date(1974, 1, 4).strftime("%Y-%m-%d"), 47)) ,
+            (0.47, ('M', date(1973, 1, 4).strftime("%Y-%m-%d"), 48)) ,
+            (0.48, ('F', date(1973, 1, 4).strftime("%Y-%m-%d"), 48)) ,
+            (0.49, ('M', date(1972, 1, 4).strftime("%Y-%m-%d"), 49)) ,
+            (0.5, ('F', date(1972, 1, 4).strftime("%Y-%m-%d"), 49)) ,
+            (0.51, ('M', date(1971, 1, 4).strftime("%Y-%m-%d"), 50)) ,
+            (0.52, ('F', date(1971, 1, 4).strftime("%Y-%m-%d"), 50)) ,
+            (0.53, ('M', date(1970, 1, 4).strftime("%Y-%m-%d"), 51)) ,
+            (0.54, ('F', date(1970, 1, 4).strftime("%Y-%m-%d"), 51)) ,
+            (0.55, ('M', date(1969, 1, 4).strftime("%Y-%m-%d"), 52)) ,
+            (0.56, ('F', date(1969, 1, 4).strftime("%Y-%m-%d"), 52)) ,
+            (0.57, ('M', date(1968, 1, 4).strftime("%Y-%m-%d"), 53)) ,
+            (0.58, ('F', date(1968, 1, 4).strftime("%Y-%m-%d"), 53)) ,
+            (0.59, ('M', date(1967, 1, 4).strftime("%Y-%m-%d"), 54)) ,
+            (0.6, ('M', date(1966, 1, 4).strftime("%Y-%m-%d"), 55)) ,
+            (0.61, ('F', date(1966, 1, 4).strftime("%Y-%m-%d"), 55)) ,
+            (0.62, ('M', date(1965, 1, 4).strftime("%Y-%m-%d"), 56)) ,
+            (0.63, ('F', date(1965, 1, 4).strftime("%Y-%m-%d"), 56)) ,
+            (0.64, ('M', date(1964, 1, 4).strftime("%Y-%m-%d"), 57)) ,
+            (0.65, ('F', date(1964, 1, 4).strftime("%Y-%m-%d"), 57)) ,
+            (0.66, ('M', date(1963, 1, 4).strftime("%Y-%m-%d"), 58)) ,
+            (0.67, ('F', date(1963, 1, 4).strftime("%Y-%m-%d"), 58)) ,
+            (0.68, ('M', date(1962, 1, 4).strftime("%Y-%m-%d"), 59)) ,
+            (0.69, ('F', date(1962, 1, 4).strftime("%Y-%m-%d"), 59)) ,
+            (0.7, ('M', date(1961, 1, 4).strftime("%Y-%m-%d"), 60)) ,
+            (0.71, ('F', date(1961, 1, 4).strftime("%Y-%m-%d"), 60)) ,
+            (0.72, ('F', date(1960, 1, 4).strftime("%Y-%m-%d"), 61)) ,
+            (0.73, ('M', date(1959, 1, 4).strftime("%Y-%m-%d"), 62)) ,
+            (0.74, ('F', date(1959, 1, 4).strftime("%Y-%m-%d"), 62)) ,
+            (0.75, ('M', date(1958, 1, 4).strftime("%Y-%m-%d"), 63)) ,
+            (0.76, ('M', date(1957, 1, 4).strftime("%Y-%m-%d"), 64)) ,
+            (0.77, ('F', date(1957, 1, 4).strftime("%Y-%m-%d"), 64)) ,
+            (0.78, ('M', date(1956, 1, 4).strftime("%Y-%m-%d"), 65)) ,
+            (0.79, ('M', date(1955, 1, 4).strftime("%Y-%m-%d"), 66)) ,
+            (0.8, ('F', date(1955, 1, 4).strftime("%Y-%m-%d"), 66)) ,
+            (0.81, ('F', date(1954, 1, 4).strftime("%Y-%m-%d"), 67)) ,
+            (0.82, ('M', date(1953, 1, 4).strftime("%Y-%m-%d"), 68)) ,
+            (0.83, ('M', date(1952, 1, 4).strftime("%Y-%m-%d"), 69)) ,
+            (0.84, ('F', date(1952, 1, 4).strftime("%Y-%m-%d"), 69)) ,
+            (0.85, ('M', date(1950, 1, 4).strftime("%Y-%m-%d"), 71)) ,
+            (0.86, ('M', date(1949, 1, 4).strftime("%Y-%m-%d"), 72)) ,
+            (0.87, ('M', date(1948, 1, 4).strftime("%Y-%m-%d"), 73)) ,
+            (0.88, ('M', date(1947, 1, 4).strftime("%Y-%m-%d"), 74)) ,
+            (0.89, ('F', date(1946, 1, 4).strftime("%Y-%m-%d"), 75)) ,
+            (0.9, ('F', date(1945, 1, 4).strftime("%Y-%m-%d"), 76)) ,
+            (0.91, ('M', date(1943, 1, 4).strftime("%Y-%m-%d"), 78)) ,
+            (0.92, ('F', date(1942, 1, 4).strftime("%Y-%m-%d"), 79)) ,
+            (0.93, ('F', date(1940, 1, 4).strftime("%Y-%m-%d"), 81)) ,
+            (0.94, ('F', date(1938, 1, 4).strftime("%Y-%m-%d"), 83)) ,
+            (0.95, ('M', date(1936, 1, 4).strftime("%Y-%m-%d"), 85)) ,
+            (0.96, ('F', date(1934, 1, 4).strftime("%Y-%m-%d"), 87)) ,
+            (0.97, ('F', date(1932, 1, 4).strftime("%Y-%m-%d"), 89)) ,
+            (0.98, ('F', date(1930, 1, 4).strftime("%Y-%m-%d"), 91)) ,
+            (0.99, ('F', date(1928, 1, 4).strftime("%Y-%m-%d"), 93)) 
         ]
 
         for i in range(len(results)):
-            np_random_mock.random.return_value = results[i][0]
+            random_mock.return_value = results[i][0]
             gender, dob, age = c.generate_age_gender()
-            ## to print the current state, use the following:
-            # print((results[i][0], (gender, dob, age)), ',')
             self.assertEqual(results[i][1], (gender, dob, age))
 
     @freeze_time("2022-01-01")
-    @patch("numpy.random")
-    @patch("random.random")
-    @patch("datagen_customer.fake")
-    @patch("datagen_customer.cities", demographics.make_cities())
-    @patch("datagen_customer.age_gender", demographics.make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_get_random_location(self, fake, random_mock, np_random_mock):
-
+    # @patch("numpy.random")
+    @patch("datagen_customer.random")
+    @patch("faker.Faker")
+    @patch("datagen_customer.cities", make_cities())
+    @patch("datagen_customer.age_gender", make_age_gender_dict())
+    def test_get_random_location(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -271,11 +253,12 @@ class TestCustomer(unittest.TestCase):
         fake.email.return_value = 'john.smith@example.com'
         fake.random_number.return_value = '123456789011'
         fake.date_time_this_century.return_value = date(1970, 1, 4)
-
-        np_random_mock.random.return_value = 0.1
-        random_mock.return_value = 0.1
         fake.date_time_this_century.return_value = date(1970, 1, 4)
-        c = Customer()
+
+        random_mock.return_value = 0.1
+        c = Customer(config=main)
+        c.fake = fake
+        c.generate_customer()
 
         results = [
             (0.0, 'Woodland Hills|CA|91371|33.7866|-118.2987|65351') ,
@@ -380,18 +363,16 @@ class TestCustomer(unittest.TestCase):
             (0.99, 'Los Angeles|CA|90044|33.9551|-118.2901|2383912')        ]
         for i in range(len(results)):
             random_mock.return_value = results[i][0]
-            self.assertEqual(results[i][1], c.get_random_location())
+            self.assertEqual(results[i][1].split("|"), c.get_random_location())
 
 
     @freeze_time("2022-01-01")
-    @patch("numpy.random")
-    @patch("random.random")
-    @patch("datagen_customer.fake")
-    @patch("datagen_customer.cities", demographics.make_cities())
-    @patch("datagen_customer.age_gender", demographics.make_age_gender_dict())
-    @patch("datagen_customer.all_profiles", MainConfig(main).config)
-    def test_find_profile(self, fake, random_mock, np_random_mock):
-
+    @patch("datagen_customer.random")
+    @patch("faker.Faker")
+    @patch("datagen_customer.cities", make_cities())
+    @patch("datagen_customer.age_gender", make_age_gender_dict())
+    def test_find_profile(self, faker_constructor, random_mock):
+        fake = faker_constructor.return_value
         fake.ssn.return_value = '123-45-678'
         fake.last_name.return_value = 'Smith'
         fake.first_name_male.return_value = 'John'
@@ -402,7 +383,6 @@ class TestCustomer(unittest.TestCase):
         fake.email.return_value = 'john.smith@example.com'
         fake.random_number.return_value = '123456789011'
 
-        random_mock.return_value = 0.1
         fake.date_time_this_century.return_value = date(1960, 1, 4)
 
         results = [
@@ -509,65 +489,76 @@ class TestCustomer(unittest.TestCase):
         ]
         for i in range(len(results)):
             # set random value that affects age_gender
-            np_random_mock.random.return_value = results[i][0]
-            c = Customer()
+            random_mock.side_effect = [results[i][0], 0.1, results[i][0]]
+            c = Customer(config=main)
+            c.fake = fake
+            c.generate_customer()
             self.assertEqual((results[i][0], results[i][1]), (results[i][0], c.find_profile()))
 
 class TestProfileWeights(unittest.TestCase):
     @patch("random.randint")
     def test_sample_time(self, random_randint_mock):
 
-        with open(os.path.join('profiles', 'adults_2550_female_urban.json')) as f:
-            pro = f.read()
+        profile_file = os.path.join('profiles', 'adults_2550_female_urban.json')
+        with open(profile_file, 'r') as f:
+            profile_obj = json.load(f)
 
-        p = Profile(pro, date(2012,1,1), date(2012, 12,31))
+            p = Profile(profile_obj)
 
-        # AM no fraud
-        for i in range(100):
-            ts = p.sample_time('AM', 0)
-            hr, mn, sec = ts.split(':')
-            self.assertLess(int(hr), 12)
-
-        # PM no fraud
-        for i in range(100):
-            ts = p.sample_time('PM', 0)
-            hr, mn, sec = ts.split(':')
-            self.assertGreaterEqual(int(hr), 12)
-
-        # AM fraud
-        for i in range(100):
-            random_randint_mock.return_value = i
-            ts = p.sample_time('AM', 1)
-            hr, mn, sec = ts.split(':')
-            if i <= 20:
+            # AM no fraud
+            for i in range(100):
+                ts = p.sample_time('AM', 0)
+                hr, mn, sec = ts
                 self.assertLess(int(hr), 12)
-            else:
-                self.assertLess(int(hr), 4)
 
-        # PM fraud
-        for i in range(100):
-            random_randint_mock.return_value = i
-            ts = p.sample_time('PM', 1)
-            hr, mn, sec = ts.split(':')
-            if i <= 20:
+            # PM no fraud
+            for i in range(100):
+                ts = p.sample_time('PM', 0)
+                hr, mn, sec = ts
                 self.assertGreaterEqual(int(hr), 12)
-            else:
-                self.assertGreaterEqual(int(hr), 22)
+
+            # AM fraud
+            for i in range(100):
+                random_randint_mock.return_value = i
+                ts = p.sample_time('AM', 1)
+                hr, mn, sec = ts
+                if i <= 20:
+                    self.assertLess(int(hr), 12)
+                else:
+                    self.assertLess(int(hr), 4)
+
+            # PM fraud
+            for i in range(100):
+                random_randint_mock.return_value = i
+                ts = p.sample_time('PM', 1)
+                hr, mn, sec = ts
+                if i <= 20:
+                    self.assertGreaterEqual(int(hr), 12)
+                else:
+                    self.assertGreaterEqual(int(hr), 22)
 
     def test_profile_values(self):
         for p_file in profile_list:
-            with open(os.path.join('profiles', p_file)) as f:
-                pro = f.read()
-            p = Profile(pro, date(2012,1,1), date(2012, 12,31))
-            # to save the profiles as test data use the following:
-            # with open(f"./tests/data/{p_file}", 'w') as f:
-            #     json.dump(p.profile, f, indent=4, sort_keys=True, default=str)
+            profile_file = os.path.join('profiles', p_file)
+            with open(profile_file, 'r') as f:
+                profile_obj = json.load(f)
 
-            # test that the results are matching the saved data
-            p_dump = json.loads(json.dumps(p.profile, default=str))
-            with open(os.path.join('tests', 'data', p_file), 'r') as f:
-                p_test = json.load(f)
-            self.assertDictEqual(p_dump, p_test)
+                p = Profile(profile_obj)
+                p.set_date_range(date(2012,1,1), date(2012, 12,31))
+
+                # to save the profiles as test data use the following:
+                # del p.proportions['date_wt']
+                # with open(f"./tests/data/{p_file}", 'w') as f:
+                #     json.dump(p.proportions, f, indent=4, sort_keys=True, default=str)
+
+                # test that the results are matching the saved data
+                del p.proportions['date_wt']
+                p_dump = json.loads(json.dumps(p.proportions, default=str))
+                with open(os.path.join('tests', 'data', p_file), 'r') as f:
+                    p_test = json.load(f)
+                self.assertDictEqual(p_dump['categories_wt'], p_test['categories_wt'])
+                self.assertDictEqual(p_dump['shopping_time'], p_test['shopping_time'])
+                self.assertDictEqual(p_dump['date_prop'], p_test['date_wt'])
 
 
     @patch("numpy.random", np.random)
@@ -583,61 +574,63 @@ class TestProfileWeights(unittest.TestCase):
         random_test.seed(0)
 
         for p_file in profile_list:
-            with open(os.path.join('profiles', p_file)) as f:
-                pro = f.read()
-            p = Profile(pro, date(2012,1,1), date(2012, 1,31))
+            profile_file = os.path.join('profiles', p_file)
+            with open(profile_file, 'r') as f:
+                profile_obj = json.load(f)
 
-            # no fraud
-            output, is_traveling, travel_max, fraud_dates = p.sample_from(0)
+                p = Profile(profile_obj)
+                p.set_date_range(date(2012,1,1), date(2012, 1,31))
 
-            # # to save the test data, use the following
-            # with open(os.path.join('tests','data', p_file.replace('.json', '.csv')), 'w') as f:
-            #     for row in output:
-            #         f.write("|".join([row, str(int(is_traveling)), str(travel_max)] + fraud_dates) + '\n')
+                # no fraud
+                output, is_traveling, travel_max, fraud_dates = p.sample_from(0)
 
-            with open(os.path.join('tests','data', p_file.replace('.json', '.csv')), 'r') as f:
-                rows = f.readlines()
-                self.assertEqual(len(rows), len(output))
-                for i in range(len(output)):
-                    row = rows[i].strip().split('|')
-                    expected_output = row[:6]
-                    test_row = output[i].split("|")
-                    for j, o in enumerate(expected_output):
-                        # skip md5
-                        if j == 0:
-                            continue
-                        self.assertEqual(o, test_row[j])
-                    
-                    self.assertEqual(int(is_traveling), int(row[7]))
-                    self.assertEqual(travel_max, int(row[8]))
-                    
+                # # to save the test data, use the following
+                # with open(os.path.join('tests','data', p_file.replace('.json', '.csv')), 'w') as f:
+                #     for row in output:
+                #         f.write("|".join([row, str(int(is_traveling)), str(travel_max)] + fraud_dates) + '\n')
 
-            # fraud
-            output, is_traveling, travel_max, fraud_dates = p.sample_from(1)
+                with open(os.path.join('tests','data', p_file.replace('.json', '.csv')), 'r') as f:
+                    rows = f.readlines()
+                    self.assertEqual(len(rows), len(output))
+                    for i in range(len(output)):
+                        row = rows[i].strip().split('|')
+                        expected_output = row[:6]
+                        test_row = output[i]
+                        for j, o in enumerate(expected_output):
+                            # skip md5
+                            if j == 0:
+                                continue
+                            self.assertEqual(o, test_row[j])
+                        
+                        self.assertEqual(int(is_traveling), int(row[7]))
+                        self.assertEqual(travel_max, int(row[8]))
+                        
 
-            # # to save the test data, use the following
-            # with open(os.path.join('tests','data', p_file.replace('.json', '_fraud.csv')), 'w') as f:
-            #     for row in output:
-            #         f.write("|".join([row, str(int(is_traveling)), str(travel_max)] + fraud_dates) + '\n')
+                # fraud
+                output, is_traveling, travel_max, fraud_dates = p.sample_from(1)
 
-            with open(os.path.join('tests','data', p_file.replace('.json', '_fraud.csv')), 'r') as f:
-                rows = f.readlines()
-                self.assertEqual(len(rows), len(output))
-                for i in range(len(output)):
-                    row = rows[i].strip().split('|')
-                    expected_output = row[:6]
-                    test_row = output[i].split("|")
-                    for j, o in enumerate(expected_output):
-                        # skip md5
-                        if j == 0:
-                            continue
-                        self.assertEqual(o, test_row[j])
+                # # to save the test data, use the following
+                # with open(os.path.join('tests','data', p_file.replace('.json', '_fraud.csv')), 'w') as f:
+                #     for row in output:
+                #         f.write("|".join([row, str(int(is_traveling)), str(travel_max)] + fraud_dates) + '\n')
 
-                    self.assertEqual(int(is_traveling), int(row[7]))
-                    self.assertEqual(travel_max, int(row[8]))
-                    if len(fraud_dates) > 0:
-                        self.assertEqual(fraud_dates, row[9:])
+                with open(os.path.join('tests','data', p_file.replace('.json', '_fraud.csv')), 'r') as f:
+                    rows = f.readlines()
+                    self.assertEqual(len(rows), len(output))
+                    for i in range(len(output)):
+                        row = rows[i].strip().split('|')
+                        expected_output = row[:6]
+                        test_row = output[i]
+                        for j, o in enumerate(expected_output):
+                            # skip md5
+                            if j == 0:
+                                continue
+                            self.assertEqual(o, test_row[j])
 
+                        self.assertEqual(int(is_traveling), int(row[7]))
+                        self.assertEqual(travel_max, int(row[8]))
+                        if len(fraud_dates) > 0:
+                            self.assertEqual(fraud_dates, row[9:])
 
 
 if __name__ == '__main__':
