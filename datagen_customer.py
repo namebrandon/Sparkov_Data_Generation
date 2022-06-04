@@ -63,12 +63,11 @@ class Customer:
         while True:
             age = int(g_a[1])
             today = date.today()
-            rand_date = fake.date_time_this_century()
-            # find birthyear, which is today's year - age - 1 if today's month,day is smaller than dob month,day
-            birth_year = today.year - age - ((today.month, today.day) < (rand_date.month, rand_date.day))
-            dob = rand_date.replace(year=birth_year)
-
             try:
+                rand_date = fake.date_time_this_century()
+                # find birthyear, which is today's year - age - 1 if today's month,day is smaller than dob month,day
+                birth_year = today.year - age - ((today.month, today.day) < (rand_date.month, rand_date.day))
+                dob = rand_date.replace(year=birth_year)
                 # return first letter of gender, dob and age
                 return g_a[0][0], dob, age
             except:
