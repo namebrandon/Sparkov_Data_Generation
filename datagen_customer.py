@@ -79,6 +79,7 @@ class Customer:
         return cities[min(cities, key=lambda x: abs(x - n))]
 
     def find_profile(self):
+
         city_pop = float(self.addy.split('|')[-1])
 
         match = []
