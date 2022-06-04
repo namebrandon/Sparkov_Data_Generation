@@ -8,7 +8,6 @@ import pathlib
 from bisect import bisect_left
 
 
-sep = '|'
 headers = [
     'ssn',
     'cc_num',
@@ -152,14 +151,12 @@ if __name__ == '__main__':
     parser.add_argument('seed', type=int, nargs='?', help='Random generator seed', default=42)
     parser.add_argument('config', type=pathlib.Path, nargs='?', help='Profile config file (typically profiles/main_config.json")', default='./profiles/main_config.json')
     parser.add_argument('-o', '--output', type=pathlib.Path, help='Output file path', default=None)
-    parser.add_argument('-s', '--separator', type=str, help='Separator (defaut to "|", use "," for CSV format)', default='|')
 
     args = parser.parse_args()
     num_cust = args.count
     seed_num = args.seed
     config = args.config
     out_path = args.output
-    sep = args.separator
 
     if num_cust <= 0 or seed_num is None or config is None:
         parser.print_help()
@@ -178,12 +175,12 @@ if __name__ == '__main__':
     all_profiles = MainConfig(config).config
 
     # print headers
-    print(sep.join(headers))
+    print("|".join(headers))
 
     c = Customer()
     for _ in range(num_cust):
         customer_data = c.generate_customer()
-        print(sep.join(customer_data))
+        print("|".join(customer_data))
 
 
     # restore original sdtout when done
