@@ -11,6 +11,7 @@ import csv
 from datagen_customer import headers
 
 
+fake = Faker()
 transaction_headers = [
     'trans_num', 
     'trans_date', 
@@ -41,7 +42,6 @@ class Customer:
         self.raw = raw.strip().split('|')
         self.attrs = self.parse_customer(raw)
         self.fraud_dates = []
-        self.fake = Faker()
 
     def print_trans(self, trans, is_fraud, fraud_dates):
         is_traveling = trans[1]
@@ -63,8 +63,8 @@ class Customer:
                 rad = (float(travel_max) / 100) * 1.43
 
             # geo_coordinate() uses uniform distribution with lower = (center-rad), upper = (center+rad)
-            merch_lat = self.fake.coordinate(center=float(cust_lat),radius=rad)
-            merch_long = self.fake.coordinate(center=float(cust_long),radius=rad)
+            merch_lat = fake.coordinate(center=float(cust_lat),radius=rad)
+            merch_long = fake.coordinate(center=float(cust_long),radius=rad)
 
             if (is_fraud == 0 and t[1] not in fraud_dates) or is_fraud == 1:
                 features = self.raw + t + [chosen_merchant, str(merch_lat), str(merch_long)]
