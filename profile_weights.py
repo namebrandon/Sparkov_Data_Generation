@@ -18,7 +18,9 @@ class Profile:
         years_wt, leap_wt = self.prep_holidays()
         self.proportions['date_wt']['time_of_year'] = years_wt
         self.proportions['date_wt']['time_of_year_leap'] = leap_wt
+        self.amt_specs = self.pre_compute_amt_specs()
         self.fake = Faker()
+        # Faker.seed(0)
 
     def set_date_range(self, start, end):
         self.start = start
@@ -115,8 +117,8 @@ class Profile:
         years_wt = sorted(self.profile['date_wt']['year'].keys())
         # sync weights to extracted years
         for i, y in enumerate(years):
-            if years_wt[i] in self.profile['date_wt']['year']:
-                final_year[y] = self.profile['date_wt']['year'][years_wt[i]]
+            if i < len(years_wt):
+                final_year[y] = self.profile['date_wt']['year'].get(years_wt[i], 100)
             # if not enough years provided, make it 100
             else:
                 final_year[y] = 100
@@ -132,9 +134,9 @@ class Profile:
             else:
                 time_name = 'time_of_year'
 
-            date_wt = weights['year'][curr.year]*\
-                      weights[time_name][(curr.month,curr.day)]*\
-                      weights['day_of_week'][curr.weekday()]
+            date_wt = (weights['year'][curr.year]
+                     * weights[time_name][(curr.month,curr.day)]
+                     * weights['day_of_week'][curr.weekday()])
 
             new_date_weights[curr] = date_wt
             curr += timedelta(days=1)
@@ -163,6 +165,15 @@ class Profile:
         if pos == len(pro):
             return pro[lst[-1]]
         return pro[lst[pos]]
+
+    def pre_compute_amt_specs(self):
+        amt_specs = {}
+        for category in self.profile['categories_amt'].keys():
+            amt_specs[category] = {
+                'shape': self.profile['categories_amt'][category]['mean']**2 / self.profile['categories_amt'][category]['stdev']**2,
+                'scale': self.profile['categories_amt'][category]['stdev']**2 / self.profile['categories_amt'][category]['mean']
+            }
+        return amt_specs
 
     def sample_amt(self, category):
         shape = self.profile['categories_amt'][category]['mean']**2 / self.profile['categories_amt'][category]['stdev']**2
@@ -196,6 +207,23 @@ class Profile:
         secs = random.randrange(60)
         return [hour, mins, secs]
 
+    def get_rand_2d(self, n, m, o):
+        x = [np.arange(n)]
+        for i in range(m):
+            x.append(np.random.random(n))
+        for j in range(o):
+            x.append(np.zeros(n))
+        return np.array(x).T
+        
+    def closest_rand_parallel(self, r, i, j, obj):
+        # get the closest number in obj keys from the number in col i, return in col j
+        lst = np.array(list(obj.keys())[::-1])
+        # sort by the ith colum
+        r2 = r[r[:,i].argsort()]
+        for x in lst:
+            r2[:,j] = np.where(r2[:,1] <= x, x, r2[:,j])
+        return r2
+
     def sample_from(self, is_fraud):
 
         # randomly sample number of transactions
@@ -215,21 +243,44 @@ class Profile:
         output = []
         rand_date = np.random.random(num_trans)
         rand_cat = np.random.random(num_trans)
-        epoch_start = datetime(1970,1,1,0,0,0)
+
+        # get an 2d array of random numbers + empty columns for mapping
+        rnds = self.get_rand_2d(num_trans, 2, 4)
+
+        rnds = self.closest_rand_parallel(rnds, 1, 3, self.proportions['date_prop'])
+        rnds = self.closest_rand_parallel(rnds, 2, 5, self.proportions['shopping_time'])
+        rnds = self.closest_rand_parallel(rnds, 2, 4, self.proportions['categories_wt'])
+
+        # get counts for each category
+        unique, counts = np.unique(rnds[:,4], return_counts=True)
+        # sort by category
+        rnds = rnds[rnds[:,5].argsort()]
+        offset = 0
+        # for each category get the number of sample amounts
+        for i, cat_prop in enumerate(unique):
+            cat_specs = self.amt_specs[self.proportions['categories_wt'][cat_prop]]
+            shape = cat_specs['shape']
+            scale = cat_specs['scale']
+            rnd_amts = np.random.gamma(shape, scale, counts[i])
+            rnds[offset: offset + counts[i], 6] = rnd_amts
+            offset += counts[i]
+
+        # re-sort by index (see if needed)
+        # rnds = rnds[rnds[:,0].argsort()]
 
         fraud_dates = []
-        for i, num in enumerate(rand_date):
+        for i in range(num_trans): # , num in enumerate(rand_date):
             trans_num = self.fake.md5(raw_output=False)
-            chosen_date = self.closest_rand(self.proportions['date_prop'], num)
+            chosen_date = self.proportions['date_prop'][rnds[i, 3]] #self.closest_rand(self.proportions['date_prop'], num)
             chosen_date_str = chosen_date.strftime('%Y-%m-%d')
             if is_fraud == 1:
                 fraud_dates.append(chosen_date_str)
-            chosen_cat = self.closest_rand(self.proportions['categories_wt'], rand_cat[i])
-            chosen_amt = self.sample_amt(chosen_cat)
-            chosen_daypart = self.closest_rand(self.proportions['shopping_time'], rand_cat[i])
+            chosen_cat = self.proportions['categories_wt'][rnds[i, 4]] #self.closest_rand(self.proportions['categories_wt'], rand_cat[i])
+            chosen_amt = rnds[i, 6] # self.sample_amt(chosen_cat)
+            chosen_daypart = self.proportions['shopping_time'][rnds[i, 5]] #self.closest_rand(self.proportions['shopping_time'], )
             hr, mn, sec = self.sample_time(chosen_daypart, is_fraud)
             chosen_date = datetime.combine(chosen_date, time(hour=hr, minute=mn, second=sec))
-            epoch = int((chosen_date - epoch_start).total_seconds())
+            epoch = int(chosen_date.timestamp()) #int((chosen_date - epoch_start).total_seconds())
             output.append([str(trans_num), chosen_date_str, f"{hr:02d}:{mn:02d}:{sec:02d}", str(epoch), str(chosen_cat), str(chosen_amt), str(is_fraud)])
         return output, is_traveling, travel_max, fraud_dates
 

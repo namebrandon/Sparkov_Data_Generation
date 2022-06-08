@@ -35,13 +35,14 @@ with open('data/merchants.csv', 'r') as merchants_file:
             merchants[row[0]] = []
         merchants[row[0]].append(row[1])
 
+fake = Faker()
+
 
 class Customer:
     def __init__(self, raw):
         self.raw = raw.strip().split('|')
         self.attrs = self.parse_customer(raw)
         self.fraud_dates = []
-        self.fake = Faker()
 
     def print_trans(self, trans, is_fraud, fraud_dates):
         is_traveling = trans[1]
@@ -63,8 +64,8 @@ class Customer:
                 rad = (float(travel_max) / 100) * 1.43
 
             # geo_coordinate() uses uniform distribution with lower = (center-rad), upper = (center+rad)
-            merch_lat = self.fake.coordinate(center=float(cust_lat),radius=rad)
-            merch_long = self.fake.coordinate(center=float(cust_long),radius=rad)
+            merch_lat = fake.coordinate(center=float(cust_lat),radius=rad)
+            merch_long = fake.coordinate(center=float(cust_long),radius=rad)
 
             if (is_fraud == 0 and t[1] not in fraud_dates) or is_fraud == 1:
                 features = self.raw + t + [chosen_merchant, str(merch_lat), str(merch_long)]
@@ -104,6 +105,8 @@ def main(customer_file, profile_file, start_date, end_date, out_path=None):
     profile = Profile({**profile_obj})
     profile.set_date_range(start_date, end_date)
     fraud_profile = Profile({**profile_fraud_obj})
+
+    inter_val = (end_date - start_date).days - 7
     # for each customer, if the customer fits this profile
     # generate appropriate number of transactions
     with open(customer_file, 'r') as f:
@@ -120,7 +123,6 @@ def main(customer_file, profile_file, start_date, end_date, out_path=None):
                 # decide if we generate fraud or not
                 if fraud_flag < 99: #11->25
                     fraud_interval = random.randint(1,1) #7->1
-                    inter_val = (end_date - start_date).days - 7
                     # rand_interval is the random no of days to be added to start date
                     rand_interval = random.randint(1, inter_val)
                     #random start date is selected
