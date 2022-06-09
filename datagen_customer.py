@@ -1,6 +1,6 @@
 from faker import Faker
 import sys
-from datetime import timedelta, date
+from datetime import date
 import random
 from main_config import MainConfig
 import argparse

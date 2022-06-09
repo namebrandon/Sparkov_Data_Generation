@@ -154,18 +154,6 @@ class Profile:
         # the cumsum as the key from which to sample
         self.date_weights()
 
-    def closest_rand(self, pro, num):
-        """
-        Assumes lst is sorted. Returns closest value > num.
-        """
-        lst = list(pro.keys())
-        pos = bisect_left(lst, num)
-        if pos == 0:
-            return pro[lst[0]]
-        if pos == len(pro):
-            return pro[lst[-1]]
-        return pro[lst[pos]]
-
     def pre_compute_amt_specs(self):
         amt_specs = {}
         for category in self.profile['categories_amt'].keys():
@@ -174,15 +162,6 @@ class Profile:
                 'scale': self.profile['categories_amt'][category]['stdev']**2 / self.profile['categories_amt'][category]['mean']
             }
         return amt_specs
-
-    def sample_amt(self, category):
-        shape = self.profile['categories_amt'][category]['mean']**2 / self.profile['categories_amt'][category]['stdev']**2
-        scale = self.profile['categories_amt'][category]['stdev']**2 / self.profile['categories_amt'][category]['mean']
-        amt = np.random.gamma(shape, scale, 1)[0]
-        #seeing lots of <$1.00 charges, hacky fix even though it breaks the gamma distribution
-        if amt < 1:
-            amt = np.random.uniform(1.00, 10.00)
-        return str("{:.2f}".format(amt))
 
     def sample_time(self, am_or_pm, is_fraud):
 
@@ -241,8 +220,6 @@ class Profile:
         is_traveling = False
 
         output = []
-        rand_date = np.random.random(num_trans)
-        rand_cat = np.random.random(num_trans)
 
         # get an 2d array of random numbers + empty columns for mapping
         rnds = self.get_rand_2d(num_trans, 2, 4)
@@ -262,25 +239,25 @@ class Profile:
             shape = cat_specs['shape']
             scale = cat_specs['scale']
             rnd_amts = np.random.gamma(shape, scale, counts[i])
-            rnds[offset: offset + counts[i], 6] = rnd_amts
+            # as in previous version, when transactions are under $1, use uniform 1-10 range
+            rnd_amts_lower = np.random.uniform(1.00, 10.00, counts[i])
+            rnds[offset: offset + counts[i], 6] = np.where(rnd_amts < 1, rnd_amts_lower, rnd_amts)
             offset += counts[i]
 
-        # re-sort by index (see if needed)
-        # rnds = rnds[rnds[:,0].argsort()]
-
         fraud_dates = []
-        for i in range(num_trans): # , num in enumerate(rand_date):
+        # now loop through and pick from random array
+        for i in range(num_trans):
             trans_num = self.fake.md5(raw_output=False)
-            chosen_date = self.proportions['date_prop'][rnds[i, 3]] #self.closest_rand(self.proportions['date_prop'], num)
+            chosen_date = self.proportions['date_prop'][rnds[i, 3]]
             chosen_date_str = chosen_date.strftime('%Y-%m-%d')
             if is_fraud == 1:
                 fraud_dates.append(chosen_date_str)
-            chosen_cat = self.proportions['categories_wt'][rnds[i, 4]] #self.closest_rand(self.proportions['categories_wt'], rand_cat[i])
-            chosen_amt = rnds[i, 6] # self.sample_amt(chosen_cat)
-            chosen_daypart = self.proportions['shopping_time'][rnds[i, 5]] #self.closest_rand(self.proportions['shopping_time'], )
+            chosen_cat = self.proportions['categories_wt'][rnds[i, 4]]
+            chosen_amt = "{:.2f}".format(rnds[i, 6])
+            chosen_daypart = self.proportions['shopping_time'][rnds[i, 5]]
             hr, mn, sec = self.sample_time(chosen_daypart, is_fraud)
             chosen_date = datetime.combine(chosen_date, time(hour=hr, minute=mn, second=sec))
-            epoch = int(chosen_date.timestamp()) #int((chosen_date - epoch_start).total_seconds())
+            epoch = int(chosen_date.timestamp())
             output.append([str(trans_num), chosen_date_str, f"{hr:02d}:{mn:02d}:{sec:02d}", str(epoch), str(chosen_cat), str(chosen_amt), str(is_fraud)])
         return output, is_traveling, travel_max, fraud_dates
 
