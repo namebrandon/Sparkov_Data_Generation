@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     # create the folder if it does not exist
     if not os.path.exists(out_path):
-        os.mkdir(out_path)
+        os.makedirs(out_path)
 
     # if no customers file provided, generate a customers file
     if customer_file is None and num_cust is not None:
