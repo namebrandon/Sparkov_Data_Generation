@@ -1,7 +1,7 @@
 from faker import Faker
 import sys
-from datetime import timedelta, date
-from random import random
+from datetime import date
+import random
 from main_config import MainConfig
 import argparse
 import pathlib
@@ -83,7 +83,7 @@ class Customer:
             return self.fake.first_name_female()
 
     def generate_age_gender(self):
-        n = random()
+        n = random.random()
         g_a = age_gender[min([a for a in age_gender if a > n])]
 
         while True:
@@ -105,7 +105,7 @@ class Customer:
         """
         Assumes lst is sorted. Returns closest value to num.
         """
-        num = random()
+        num = random.random()
         lst = list(cities.keys())
         pos = bisect_left(lst, num)
         if pos == 0:

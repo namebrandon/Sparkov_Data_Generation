@@ -85,7 +85,7 @@ def valid_date(s):
         raise argparse.ArgumentTypeError(msg)
 
 
-def main(customer_file, profile_file, start_date, end_date, out_path=None):
+def main(customer_file, profile_file, start_date, end_date, out_path=None, start_offset=0, end_offset=sys.maxsize):
 
     profile_name = profile_file.name
     profile_file_fraud = pathlib.Path(*list(profile_file.parts)[:-1] + [f"fraud_{profile_name}"])
@@ -104,43 +104,58 @@ def main(customer_file, profile_file, start_date, end_date, out_path=None):
     profile = Profile({**profile_obj})
     profile.set_date_range(start_date, end_date)
     fraud_profile = Profile({**profile_fraud_obj})
+
+    inter_val = (end_date - start_date).days - 7
     # for each customer, if the customer fits this profile
     # generate appropriate number of transactions
     with open(customer_file, 'r') as f:
         f.readline()
-        headers.extend(transaction_headers)
-        print("|".join(headers))
-        for row in f.readlines():
-            cust = Customer(row)
-            if cust.attrs['profile'] == profile_name:
-                is_fraud = 0
-                fraud_flag = random.randint(0,100) # set fraud flag here, as we either gen real or fraud, not both for
-                                        # the same day.
-                fraud_dates = []
-                # decide if we generate fraud or not
-                if fraud_flag < 99: #11->25
-                    fraud_interval = random.randint(1,1) #7->1
-                    inter_val = (end_date - start_date).days - 7
-                    # rand_interval is the random no of days to be added to start date
-                    rand_interval = random.randint(1, inter_val)
-                    #random start date is selected
-                    newstart = start_date + timedelta(days=rand_interval)
-                    # based on the fraud interval , random enddate is selected
-                    newend = newstart + timedelta(days=fraud_interval)
-                    # we assume that the fraud window can be between 1 to 7 days #7->1
-                    fraud_profile.set_date_range(newstart, newend)
-                    is_fraud = 1
-                    temp_tx_data = fraud_profile.sample_from(is_fraud)
-                    fraud_dates = temp_tx_data[3]
-                    cust.print_trans(temp_tx_data, is_fraud, fraud_dates)
+        print("|".join(headers + transaction_headers))
+        line_num = 0
+        fail = False
+        # skip lines out of range
+        while line_num < start_offset:
+            try:
+                f.readline()
+                line_num += 1
+            except EOFError:
+                # end of file?
+                fail = True
+                break
+        if not fail:
+            for row in f.readlines():
+                cust = Customer(row)
+                if cust.attrs['profile'] == profile_name:
+                    is_fraud = 0
+                    fraud_flag = random.randint(0,100) # set fraud flag here, as we either gen real or fraud, not both for
+                                            # the same day.
+                    fraud_dates = []
+                    # decide if we generate fraud or not
+                    if fraud_flag < 99: #11->25
+                        fraud_interval = random.randint(1,1) #7->1
+                        # rand_interval is the random no of days to be added to start date
+                        rand_interval = random.randint(1, inter_val)
+                        #random start date is selected
+                        newstart = start_date + timedelta(days=rand_interval)
+                        # based on the fraud interval , random enddate is selected
+                        newend = newstart + timedelta(days=fraud_interval)
+                        # we assume that the fraud window can be between 1 to 7 days #7->1
+                        fraud_profile.set_date_range(newstart, newend)
+                        is_fraud = 1
+                        temp_tx_data = fraud_profile.sample_from(is_fraud)
+                        fraud_dates = temp_tx_data[3]
+                        cust.print_trans(temp_tx_data, is_fraud, fraud_dates)
 
-                # we're done with fraud (or didn't do it) but still need regular transactions
-                # we pass through our previously selected fraud dates (if any) to filter them
-                # out of regular transactions
-                
-                is_fraud = 0
-                temp_tx_data = profile.sample_from(is_fraud)
-                cust.print_trans(temp_tx_data, is_fraud, fraud_dates)
+                    # we're done with fraud (or didn't do it) but still need regular transactions
+                    # we pass through our previously selected fraud dates (if any) to filter them
+                    # out of regular transactions
+                    
+                    is_fraud = 0
+                    temp_tx_data = profile.sample_from(is_fraud)
+                    cust.print_trans(temp_tx_data, is_fraud, fraud_dates)
+                line_num += 1
+                if line_num > end_offset:
+                    break
 
     if out_path is not None:
         sys.stdout = original_sys_stdout
